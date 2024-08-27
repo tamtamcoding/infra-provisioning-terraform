@@ -43,7 +43,7 @@ resource "aws_security_group" "allow_all" {
 resource "aws_instance" "jenkins_server" {
   count         = 1
   ami           = data.aws_ami.amazon_linux.id
-  instance_type = "t2.micro"
+  instance_type = var.instance_type
   security_groups = [aws_security_group.allow_all.name]
   key_name      = var.key_name  # Add this line to specify the SSH key pair
 
@@ -71,7 +71,7 @@ resource "aws_instance" "jenkins_server" {
 resource "aws_instance" "ansible_server" {
   count         = 1
   ami           = data.aws_ami.amazon_linux.id
-  instance_type = "t2.micro"
+  instance_type = var.instance_type
   security_groups = [aws_security_group.allow_all.name]
   key_name      = var.key_name  # Add this line to specify the SSH key pair
 
