@@ -35,5 +35,24 @@ jobs:
     - name: Apply Terraform changes
       run: terraform apply --auto-approve
 
+    - name: Apply Terraform changes
+      run: terraform apply --auto-approve
+
+    - name: Copy CloudWatch Agent JSON config
+      run: |
+        scp -o StrictHostKeyChecking=no -i ${{ secrets.AWS_SSH_KEY }} \
+        aws_cloudwatch_agent/jenkins_cloudwatch_agent.json ec2-user@${{ secrets.JENKINS_SERVER_IP }}:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+        
+        scp -o StrictHostKeyChecking=no -i ${{ secrets.AWS_SSH_KEY }} \
+        aws_cloudwatch_agent/ansible_cloudwatch_agent.json ec2-user@${{ secrets.ANSIBLE_SERVER_IP }}:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+        
+        scp -o StrictHostKeyChecking=no -i ${{ secrets.AWS_SSH_KEY }} \
+        aws_cloudwatch_agent/webapp_cloudwatch_agent.json ec2-user@${{ secrets.WEBAPP_SERVER_IP }}:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+
+        ssh -o StrictHostKeyChecking=no -i ${{ secrets.AWS_SSH_KEY }} ec2-user@${{ secrets.JENKINS_SERVER_IP }} "sudo systemctl restart amazon-cloudwatch-agent"
+        ssh -o StrictHostKeyChecking=no -i ${{ secrets.AWS_SSH_KEY }} ec2-user@${{ secrets.ANSIBLE_SERVER_IP }} "sudo systemctl restart amazon-cloudwatch-agent"
+        ssh -o StrictHostKeyChecking=no -i ${{ secrets.AWS_SSH_KEY }} ec2-user@${{ secrets.WEBAPP_SERVER_IP }} "sudo systemctl restart amazon-cloudwatch-agent"
+
+
     - name: Clean up
       run: rm tfplan

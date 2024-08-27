@@ -40,21 +40,7 @@ resource "aws_security_group" "allow_all" {
   }
 }
 
-# Reading the JSON configuration files
-data "local_file" "jenkins_cloudwatch_agent" {
-  filename = "${path.module}/aws_cloudwatch_agent/jenkins_cloudwatch_agent.json"
-}
-
-data "local_file" "ansible_cloudwatch_agent" {
-  filename = "${path.module}/aws_cloudwatch_agent/ansible_cloudwatch_agent.json"
-}
-
-data "local_file" "webapp_cloudwatch_agent" {
-  filename = "${path.module}/aws_cloudwatch_agent/webapp_cloudwatch_agent.json"
-}
-
 resource "aws_instance" "jenkins_server" {
-  count         = 1
   ami           = data.aws_ami.amazon_linux.id
   instance_type = var.instance_type
   security_groups = [aws_security_group.allow_all.name]
@@ -70,25 +56,21 @@ resource "aws_instance" "jenkins_server" {
               sudo yum -y update
               sudo yum -y install java-1.8.0-openjdk
               sudo yum -y install jenkins
+              sudo yum -y install amazon-cloudwatch-agent
               sudo systemctl start jenkins
               sudo systemctl enable jenkins
-
-              # Create the directory for the CloudWatch Agent configuration
-              sudo mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
-
-              # Write the CloudWatch Agent configuration file
-              cat <<EOT >> /opt/aws/amazon-cloudwatch-agent/etc/jenkins_cloudwatch_agent.json
-              ${data.local_file.jenkins_cloudwatch_agent.content}
-              EOT
-
-              # Install and configure CloudWatch Agent
-              sudo yum install -y amazon-cloudwatch-agent
-              sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
-                -a fetch-config \
-                -m ec2 \
-                -c file:/opt/aws/amazon-cloudwatch-agent/etc/jenkins_cloudwatch_agent.json \
-                -s
               EOF
+
+  provisioner "file" {
+    source      = "aws_cloudwatch_agent/jenkins_cloudwatch_agent.json"
+    destination = "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo systemctl restart amazon-cloudwatch-agent",
+    ]
+  }
 
   tags = {
     Name = "Jenkins-Server"
@@ -100,7 +82,6 @@ resource "aws_instance" "jenkins_server" {
 }
 
 resource "aws_instance" "ansible_server" {
-  count         = 1
   ami           = data.aws_ami.amazon_linux.id
   instance_type = var.instance_type
   security_groups = [aws_security_group.allow_all.name]
@@ -115,24 +96,20 @@ resource "aws_instance" "ansible_server" {
               #!/bin/bash
               sudo yum -y update
               sudo yum -y install ansible
+              sudo yum -y install amazon-cloudwatch-agent
               sudo yum -y install git
-
-              # Create the directory for the CloudWatch Agent configuration
-              sudo mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
-
-              # Write the CloudWatch Agent configuration file
-              cat <<EOT >> /opt/aws/amazon-cloudwatch-agent/etc/ansible_cloudwatch_agent.json
-              ${data.local_file.ansible_cloudwatch_agent.content}
-              EOT
-
-              # Install and configure CloudWatch Agent
-              sudo yum install -y amazon-cloudwatch-agent
-              sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
-                -a fetch-config \
-                -m ec2 \
-                -c file:/opt/aws/amazon-cloudwatch-agent/etc/ansible_cloudwatch_agent.json \
-                -s
               EOF
+
+  provisioner "file" {
+    source      = "aws_cloudwatch_agent/ansible_cloudwatch_agent.json"
+    destination = "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo systemctl restart amazon-cloudwatch-agent",
+    ]
+  }
 
   tags = {
     Name = "Ansible-Server"
@@ -144,7 +121,6 @@ resource "aws_instance" "ansible_server" {
 }
 
 resource "aws_instance" "webapp_server" {
-  count         = 1
   ami           = data.aws_ami.amazon_linux.id
   instance_type = "t2.medium"
   security_groups = [aws_security_group.allow_all.name]
@@ -159,25 +135,21 @@ resource "aws_instance" "webapp_server" {
               #!/bin/bash
               sudo yum -y update
               sudo yum -y install httpd
+              sudo yum -y install amazon-cloudwatch-agent
               sudo systemctl start httpd
               sudo systemctl enable httpd
-
-              # Create the directory for the CloudWatch Agent configuration
-              sudo mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
-
-              # Write the CloudWatch Agent configuration file
-              cat <<EOT >> /opt/aws/amazon-cloudwatch-agent/etc/webapp_cloudwatch_agent.json
-              ${data.local_file.webapp_cloudwatch_agent.content}
-              EOT
-
-              # Install and configure CloudWatch Agent
-              sudo yum install -y amazon-cloudwatch-agent
-              sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
-                -a fetch-config \
-                -m ec2 \
-                -c file:/opt/aws/amazon-cloudwatch-agent/etc/webapp_cloudwatch_agent.json \
-                -s
               EOF
+
+  provisioner "file" {
+    source      = "aws_cloudwatch_agent/webapp_cloudwatch_agent.json"
+    destination = "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo systemctl restart amazon-cloudwatch-agent",
+    ]
+  }
 
   tags = {
     Name = "Webapp-Server"
@@ -186,19 +158,4 @@ resource "aws_instance" "webapp_server" {
   lifecycle {
     create_before_destroy = true
   }
-}
-
-resource "aws_cloudwatch_log_group" "jenkins_log_group" {
-  name              = "/aws/jenkins/jenkins-server"
-  retention_in_days = 14
-}
-
-resource "aws_cloudwatch_log_group" "ansible_log_group" {
-  name              = "/aws/ansible/ansible-server"
-  retention_in_days = 14
-}
-
-resource "aws_cloudwatch_log_group" "webapp_log_group" {
-  name              = "/aws/webapp/webapp-server"
-  retention_in_days = 14
 }
