@@ -1,0 +1,49 @@
+{
+    "agent": {
+      "metrics_collection_interval": 60,
+      "logfile": "/opt/aws/amazon-cloudwatch-agent/logs/webapp.log"
+    },
+    "logs": {
+      "logs_collected": {
+        "files": {
+          "collect_list": [
+            {
+              "file_path": "/var/log/httpd/access_log",
+              "log_group_name": "/aws/webapp/webapp-server",
+              "log_stream_name": "{instance_id}/access_log",
+              "timestamp_format": "%d/%b/%Y:%H:%M:%S %z"
+            },
+            {
+              "file_path": "/var/log/httpd/error_log",
+              "log_group_name": "/aws/webapp/webapp-server",
+              "log_stream_name": "{instance_id}/error_log",
+              "timestamp_format": "%d/%b/%Y:%H:%M:%S %z"
+            }
+          ]
+        }
+      }
+    },
+    "metrics": {
+      "namespace": "WebappServer/Metrics",
+      "append_dimensions": {
+        "InstanceId": "${aws:InstanceId}"
+      },
+      "aggregation_dimensions": [["InstanceId"]],
+      "metrics_collected": {
+        "cpu": {
+          "measurement": ["cpu_usage_active"],
+          "metrics_collection_interval": 60,
+          "resources": ["*"]
+        },
+        "mem": {
+          "measurement": ["mem_used_percent"],
+          "metrics_collection_interval": 60
+        },
+        "disk": {
+          "measurement": ["disk_used_percent"],
+          "metrics_collection_interval": 60
+        }
+      }
+    }
+  }
+  
