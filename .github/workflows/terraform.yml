@@ -33,16 +33,17 @@ jobs:
       run: terraform plan -out=tfplan
 
     - name: Apply Terraform changes
-      run: terraform apply --auto-approve
-
-    - name: Create private key file
       env:
         AWS_PRIVATE_KEY: ${{ secrets.AWS_EC2_KEY }}
       run: |
         echo "$AWS_PRIVATE_KEY" > private_key.pem
         chmod 600 private_key.pem  # Secure the private key file
-        
-        # Copy CloudWatch Agent JSON config
+        terraform apply --auto-approve
+
+    - name: Copy CloudWatch Agent JSON config
+      env:
+        AWS_PRIVATE_KEY: ${{ secrets.AWS_EC2_KEY }}
+      run: |
         scp -o StrictHostKeyChecking=no -i private_key.pem \
         aws_cloudwatch_agent/jenkins_cloudwatch_agent.json ec2-user@${{ secrets.JENKINS_SERVER_IP }}:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
         
@@ -57,4 +58,4 @@ jobs:
         ssh -o StrictHostKeyChecking=no -i private_key.pem ec2-user@${{ secrets.WEBAPP_SERVER_IP }} "sudo systemctl restart amazon-cloudwatch-agent"
 
     - name: Clean up
-      run: rm -f private_key.pem tfplan
+      run: rm tfplan private_key.pem
