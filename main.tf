@@ -124,7 +124,7 @@ resource "aws_instance" "jenkins_server" {
     connection {
       type        = "ssh"
       user        = "ec2-user"
-      private_key = file(var.private_key_path)
+      private_key = file("private_key.pem")
       host        = self.public_ip
     }
   }
@@ -137,7 +137,7 @@ resource "aws_instance" "jenkins_server" {
     connection {
       type        = "ssh"
       user        = "ec2-user"
-      private_key = file(var.private_key_path)
+      private_key = file("private_key.pem")
       host        = self.public_ip
     }
   }
@@ -177,7 +177,7 @@ resource "aws_instance" "ansible_server" {
     connection {
       type        = "ssh"
       user        = "ec2-user"
-      private_key = file(var.private_key_path)
+      private_key = file("private_key.pem")
       host        = self.public_ip
     }
   }
@@ -190,7 +190,7 @@ resource "aws_instance" "ansible_server" {
     connection {
       type        = "ssh"
       user        = "ec2-user"
-      private_key = file(var.private_key_path)
+      private_key = file("private_key.pem")
       host        = self.public_ip
     }
   }
@@ -232,7 +232,7 @@ resource "aws_instance" "webapp_server" {
     connection {
       type        = "ssh"
       user        = "ec2-user"
-      private_key = file(var.private_key_path)
+      private_key = file("private_key.pem")
       host        = self.public_ip
     }
   }
@@ -245,7 +245,7 @@ resource "aws_instance" "webapp_server" {
     connection {
       type        = "ssh"
       user        = "ec2-user"
-      private_key = file(var.private_key_path)
+      private_key = file("private_key.pem")
       host        = self.public_ip
     }
   }
