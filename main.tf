@@ -120,12 +120,26 @@ resource "aws_instance" "jenkins_server" {
   provisioner "file" {
     source      = "aws_cloudwatch_agent/jenkins_cloudwatch_agent.json"
     destination = "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json"
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = file(var.private_key_path)
+      host        = self.public_ip
+    }
   }
 
   provisioner "remote-exec" {
     inline = [
       "sudo systemctl restart amazon-cloudwatch-agent",
     ]
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = file(var.private_key_path)
+      host        = self.public_ip
+    }
   }
 
   tags = {
@@ -159,12 +173,26 @@ resource "aws_instance" "ansible_server" {
   provisioner "file" {
     source      = "aws_cloudwatch_agent/ansible_cloudwatch_agent.json"
     destination = "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json"
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = file(var.private_key_path)
+      host        = self.public_ip
+    }
   }
 
   provisioner "remote-exec" {
     inline = [
       "sudo systemctl restart amazon-cloudwatch-agent",
     ]
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = file(var.private_key_path)
+      host        = self.public_ip
+    }
   }
 
   tags = {
@@ -200,12 +228,26 @@ resource "aws_instance" "webapp_server" {
   provisioner "file" {
     source      = "aws_cloudwatch_agent/webapp_cloudwatch_agent.json"
     destination = "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json"
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = file(var.private_key_path)
+      host        = self.public_ip
+    }
   }
 
   provisioner "remote-exec" {
     inline = [
       "sudo systemctl restart amazon-cloudwatch-agent",
     ]
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = file(var.private_key_path)
+      host        = self.public_ip
+    }
   }
 
   tags = {
