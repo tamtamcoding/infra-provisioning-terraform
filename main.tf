@@ -11,69 +11,30 @@ provider "aws" {
   region = var.aws_region
 }
 
-# Fetch the latest Amazon Linux 2 AMI
-data "aws_ami" "amazon_linux" {
-  most_recent = true
-  owners      = ["amazon"]
-
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
-  }
-}
-
-# Create a VPC
+# VPC Configuration
 resource "aws_vpc" "main" {
-  cidr_block = var.vpc_cidr_block
-
+  cidr_block = "10.0.0.0/16"
+  enable_dns_support = true
+  enable_dns_hostnames = true
   tags = {
-    Name = "main_vpc"
+    Name = "main-vpc"
   }
 }
 
-# Create an Internet Gateway
-resource "aws_internet_gateway" "gw" {
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "main_igw"
-  }
-}
-
-# Create a Public Subnet
-resource "aws_subnet" "public_subnet" {
+# Subnet Configuration
+resource "aws_subnet" "main" {
   vpc_id            = aws_vpc.main.id
-  cidr_block        = var.public_subnet_cidr
+  cidr_block        = "10.0.1.0/24"
+  availability_zone = "us-east-1a"
   map_public_ip_on_launch = true
-
   tags = {
-    Name = "public_subnet"
+    Name = "main-subnet"
   }
 }
 
-# Create a Route Table for the Public Subnet
-resource "aws_route_table" "public_rt" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.gw.id
-  }
-
-  tags = {
-    Name = "public_rt"
-  }
-}
-
-# Associate the Public Route Table with the Public Subnet
-resource "aws_route_table_association" "public_assoc" {
-  subnet_id      = aws_subnet.public_subnet.id
-  route_table_id = aws_route_table.public_rt.id
-}
-
-# Create a Security Group
+# Security Group Configuration
 resource "aws_security_group" "allow_all" {
-  vpc_id = aws_vpc.main.id
+  vpc_id      = aws_vpc.main.id
   name        = "allow_all_traffic"
   description = "Security group to allow all incoming traffic"
 
@@ -90,19 +51,26 @@ resource "aws_security_group" "allow_all" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
 
-  tags = {
-    Name = "allow_all_traffic_sg"
+# AMI Data Source
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
   }
 }
 
-# Jenkins Server
+# Jenkins Server Instance
 resource "aws_instance" "jenkins_server" {
-  ami                  = data.aws_ami.amazon_linux.id
-  instance_type        = var.instance_type
-  subnet_id            = aws_subnet.public_subnet.id
+  ami                    = data.aws_ami.amazon_linux.id
+  instance_type          = var.instance_type
+  key_name               = var.key_name
   vpc_security_group_ids = [aws_security_group.allow_all.id]
-  key_name             = var.key_name
+  subnet_id              = aws_subnet.main.id
 
   root_block_device {
     volume_size = 10
@@ -112,7 +80,9 @@ resource "aws_instance" "jenkins_server" {
   user_data = <<-EOF
               #!/bin/bash
               sudo yum -y update
-              sudo yum -y install java-1.8.0-openjdk jenkins amazon-cloudwatch-agent
+              sudo yum -y install java-1.8.0-openjdk
+              sudo yum -y install jenkins
+              sudo yum -y install amazon-cloudwatch-agent
               sudo systemctl start jenkins
               sudo systemctl enable jenkins
               EOF
@@ -120,26 +90,12 @@ resource "aws_instance" "jenkins_server" {
   provisioner "file" {
     source      = "aws_cloudwatch_agent/jenkins_cloudwatch_agent.json"
     destination = "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json"
-
-    connection {
-      type        = "ssh"
-      user        = "ec2-user"
-      private_key = file("private_key.pem")
-      host        = self.public_ip
-    }
   }
 
   provisioner "remote-exec" {
     inline = [
       "sudo systemctl restart amazon-cloudwatch-agent",
     ]
-
-    connection {
-      type        = "ssh"
-      user        = "ec2-user"
-      private_key = file("private_key.pem")
-      host        = self.public_ip
-    }
   }
 
   tags = {
@@ -151,13 +107,13 @@ resource "aws_instance" "jenkins_server" {
   }
 }
 
-# Ansible Server
+# Ansible Server Instance
 resource "aws_instance" "ansible_server" {
-  ami                  = data.aws_ami.amazon_linux.id
-  instance_type        = var.instance_type
-  subnet_id            = aws_subnet.public_subnet.id
+  ami                    = data.aws_ami.amazon_linux.id
+  instance_type          = var.instance_type
+  key_name               = var.key_name
   vpc_security_group_ids = [aws_security_group.allow_all.id]
-  key_name             = var.key_name
+  subnet_id              = aws_subnet.main.id
 
   root_block_device {
     volume_size = 10
@@ -167,32 +123,20 @@ resource "aws_instance" "ansible_server" {
   user_data = <<-EOF
               #!/bin/bash
               sudo yum -y update
-              sudo yum -y install ansible amazon-cloudwatch-agent git
+              sudo yum -y install ansible
+              sudo yum -y install amazon-cloudwatch-agent
+              sudo yum -y install git
               EOF
 
   provisioner "file" {
     source      = "aws_cloudwatch_agent/ansible_cloudwatch_agent.json"
     destination = "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json"
-
-    connection {
-      type        = "ssh"
-      user        = "ec2-user"
-      private_key = file("private_key.pem")
-      host        = self.public_ip
-    }
   }
 
   provisioner "remote-exec" {
     inline = [
       "sudo systemctl restart amazon-cloudwatch-agent",
     ]
-
-    connection {
-      type        = "ssh"
-      user        = "ec2-user"
-      private_key = file("private_key.pem")
-      host        = self.public_ip
-    }
   }
 
   tags = {
@@ -204,13 +148,13 @@ resource "aws_instance" "ansible_server" {
   }
 }
 
-# Webapp Server
+# Webapp Server Instance
 resource "aws_instance" "webapp_server" {
-  ami                  = data.aws_ami.amazon_linux.id
-  instance_type        = "t2.medium"
-  subnet_id            = aws_subnet.public_subnet.id
+  ami                    = data.aws_ami.amazon_linux.id
+  instance_type          = "t2.medium"
+  key_name               = var.key_name
   vpc_security_group_ids = [aws_security_group.allow_all.id]
-  key_name             = var.key_name
+  subnet_id              = aws_subnet.main.id
 
   root_block_device {
     volume_size = 25
@@ -220,7 +164,8 @@ resource "aws_instance" "webapp_server" {
   user_data = <<-EOF
               #!/bin/bash
               sudo yum -y update
-              sudo yum -y install httpd amazon-cloudwatch-agent
+              sudo yum -y install httpd
+              sudo yum -y install amazon-cloudwatch-agent
               sudo systemctl start httpd
               sudo systemctl enable httpd
               EOF
@@ -228,26 +173,12 @@ resource "aws_instance" "webapp_server" {
   provisioner "file" {
     source      = "aws_cloudwatch_agent/webapp_cloudwatch_agent.json"
     destination = "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json"
-
-    connection {
-      type        = "ssh"
-      user        = "ec2-user"
-      private_key = file("private_key.pem")
-      host        = self.public_ip
-    }
   }
 
   provisioner "remote-exec" {
     inline = [
       "sudo systemctl restart amazon-cloudwatch-agent",
     ]
-
-    connection {
-      type        = "ssh"
-      user        = "ec2-user"
-      private_key = file("private_key.pem")
-      host        = self.public_ip
-    }
   }
 
   tags = {
