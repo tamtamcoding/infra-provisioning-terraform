@@ -11,6 +11,17 @@ provider "aws" {
   region = var.aws_region
 }
 
+# Fetch the latest Amazon Linux 2 AMI
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+}
+
 # Create a VPC
 resource "aws_vpc" "main" {
   cidr_block = var.vpc_cidr_block
