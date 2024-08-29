@@ -42,6 +42,16 @@ jobs:
     - name: Apply Terraform changes
       run: terraform apply --auto-approve
 
+    - name: Get EC2 Public IPs
+      id: get_public_ips
+      run: |
+        JENKINS_IP=$(terraform output -raw jenkins_public_ip)
+        ANSIBLE_IP=$(terraform output -raw ansible_public_ip)
+        WEBAPP_IP=$(terraform output -raw webapp_public_ip)
+        echo "JENKINS_IP=$JENKINS_IP" >> $GITHUB_ENV
+        echo "ANSIBLE_IP=$ANSIBLE_IP" >> $GITHUB_ENV
+        echo "WEBAPP_IP=$WEBAPP_IP" >> $GITHUB_ENV
+
     - name: Copy CloudWatch Agent JSON config
       run: |
         scp -o StrictHostKeyChecking=no -i private_key.pem \
