@@ -43,19 +43,19 @@ jobs:
       run: terraform apply --auto-approve
 
     - name: Copy CloudWatch Agent JSON config
-          run: |
-            scp -o StrictHostKeyChecking=no -i private_key.pem \
-            aws_cloudwatch_agent/jenkins_cloudwatch_agent.json ec2-user@$JENKINS_IP:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
-            
-            scp -o StrictHostKeyChecking=no -i private_key.pem \
-            aws_cloudwatch_agent/ansible_cloudwatch_agent.json ec2-user@$ANSIBLE_IP:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
-            
-            scp -o StrictHostKeyChecking=no -i private_key.pem \
-            aws_cloudwatch_agent/webapp_cloudwatch_agent.json ec2-user@$WEBAPP_IP:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+      run: |
+        scp -o StrictHostKeyChecking=no -i private_key.pem \
+        aws_cloudwatch_agent/jenkins_cloudwatch_agent.json ec2-user@$JENKINS_IP:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+        
+        scp -o StrictHostKeyChecking=no -i private_key.pem \
+        aws_cloudwatch_agent/ansible_cloudwatch_agent.json ec2-user@$ANSIBLE_IP:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+        
+        scp -o StrictHostKeyChecking=no -i private_key.pem \
+        aws_cloudwatch_agent/webapp_cloudwatch_agent.json ec2-user@$WEBAPP_IP:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
 
-            ssh -o StrictHostKeyChecking=no -i private_key.pem ec2-user@$JENKINS_IP "sudo systemctl restart amazon-cloudwatch-agent"
-            ssh -o StrictHostKeyChecking=no -i private_key.pem ec2-user@$ANSIBLE_IP "sudo systemctl restart amazon-cloudwatch-agent"
-            ssh -o StrictHostKeyChecking=no -i private_key.pem ec2-user@$WEBAPP_IP "sudo systemctl restart amazon-cloudwatch-agent"
+        ssh -o StrictHostKeyChecking=no -i private_key.pem ec2-user@$JENKINS_IP "sudo systemctl restart amazon-cloudwatch-agent"
+        ssh -o StrictHostKeyChecking=no -i private_key.pem ec2-user@$ANSIBLE_IP "sudo systemctl restart amazon-cloudwatch-agent"
+        ssh -o StrictHostKeyChecking=no -i private_key.pem ec2-user@$WEBAPP_IP "sudo systemctl restart amazon-cloudwatch-agent"
 
     - name: Clean up
       run: rm -f private_key.pem tfplan
